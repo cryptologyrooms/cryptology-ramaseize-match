@@ -1,7 +1,7 @@
-/* Arduino Includes */
+/* Arduino Library Includes */
 
-#include <TaskAction.h>
 #include "Adafruit_NeoPixel.h"
+#include "TaskAction.h"
 
 /* Application Includes */
 
@@ -9,186 +9,119 @@
 #include "leds.h"
 
 /* Defines, typedefs, constants */
+#define SINGLE_PRESS_COLOR 32,0,0
+#define COMPLETED_COLOR 0,32,0
 
-static int8_t BLINK_MS = 250;
+static const int PIN = A4;
+static const int BLINK_MS = 250;
 
-enum led_event
+/* Private Module Variables */
+
+static Adafruit_NeoPixel s_leds = Adafruit_NeoPixel(NUMBER_OF_BUTTONS, PIN, NEO_GRB + NEO_KHZ800);
+static uint8_t s_complete = 0;
+
+static int s_row_blink_counter[NUMBER_OF_ROWS];
+static bool s_pressed_once[NUMBER_OF_ROWS];
+
+/* Private Module Functions */
+
+static void reset_blink_states()
 {
-	EVENT_GAME_STATE_UPDATE,
-	EVENT_BUTTON_PRESSED,
-	EVENT_BLINK_TIMER_EXPIRED
-};
-typedef enum led_event LED_EVENT;
-
-/* Private Variables */
-
-static Adafruit_NeoPixel s_neopixels = Adafruit_NeoPixel(24, A4, NEO_GRB + NEO_KHZ800);
-static LED_STATE s_led_state[3][8];
-
-static int8_t s_led_blink_counter[3];
-
-/* Private Functions */
-
-static void reset_blink_counter(uint8_t row)
-{
-	s_led_blink_counter[row] = BLINK_MS;
-}
-
-static LED_STATE handle_new_game_state(LED_STATE current_state, uint8_t led, GAME_STATE game_state)
-{
-	LED_STATE new_state = current_state;
-	switch(current_state)
+	for(uint8_t row=0; row<NUMBER_OF_ROWS; row++)
 	{
-	case LED_OFF_1:
-		if (led == game_state ) { new_state = LED_OFF_2; }
-		break;
-	case LED_OFF_2:
-	case LED_ON_NOT_OK:
-	case LED_BLINK:
-		if (game_state >= led) { new_state = LED_ON_OK; }
-		break;
-	case LED_ON_OK:
-		break;
+		s_pressed_once[row] = false;
+		s_row_blink_counter[row] = 0;
 	}
-
-	return new_state;
 }
 
-static LED_STATE handle_blink_timer_expired(LED_STATE current_state)
+static uint8_t ledmap(uint8_t row, uint8_t led)
 {
-	LED_STATE new_state = current_state;
-	if (current_state == LED_BLINK)
-	{
-		new_state = LED_ON_NOT_OK;
-	}
-	return new_state;
+	if (row == 1) { led = 7-led; }
+	return row*8+led;
 }
 
-static LED_STATE handle_button_press(LED_STATE current_state, uint8_t row)
+static void update()
 {
-	LED_STATE new_state = current_state;
-
-	switch(current_state)
+	for(uint8_t row=0; row<NUMBER_OF_ROWS; row++)
 	{
-	case LED_OFF_1:
-		break;
-	case LED_OFF_2:
-		new_state = LED_ON_NOT_OK;
-		break;
-	case LED_ON_NOT_OK:
-		new_state = LED_BLINK;
-		reset_blink_counter(row);
-		break;
-	case LED_BLINK:
-		reset_blink_counter(row);
-		break;
-	case LED_ON_OK:
-		break;
-	}
-	return new_state;
-}
-
-static void led_blink_task(TaskAction* task)
-{
-	(void)task;
-	for (uint8_t row = 0; row < 3; row++)
-	{
-		if (s_led_blink_counter[row])
+		for(uint8_t led=0; led<BUTTONS_PER_ROW; led++)
 		{
-			s_led_blink_counter[row] -= 10;
-			if(s_led_blink_counter[row] == 0)
+			if (led < s_complete)
 			{
-				for (uint8_t led = 0; led < 8; led++)
+				s_leds.setPixelColor(ledmap(row, led), s_leds.Color(COMPLETED_COLOR));
+			}
+			else if (led == s_complete)
+			{
+				if (s_row_blink_counter[row])
 				{
-					s_led_state[row][led] = handle_blink_timer_expired(s_led_state[row][led]);
+					s_leds.setPixelColor(ledmap(row, led), s_leds.Color(0,0,0));
+				}
+				else if (s_pressed_once[row])
+				{
+					s_leds.setPixelColor(ledmap(row, led), s_leds.Color(SINGLE_PRESS_COLOR));
+				}
+				else
+				{
+					s_leds.setPixelColor(ledmap(row, led), s_leds.Color(0,0,0));
 				}
 			}
-		}
-	}
-}
-static TaskAction s_led_blink_task(led_blink_task, 10, INFINITE_TICKS);
-
-static void set_led_on_state(Adafruit_NeoPixel& pixels, uint8_t row, uint8_t led, LED_STATE state)
-{
-	row = 2-row;
-	if (row==1) { led=7-led; }
-	switch(state)
-	{
-	case LED_OFF_1:
-	case LED_OFF_2:
-		pixels.setPixelColor(row*8+led, 0, 0, 0);
-		break;
-	case LED_ON_OK:
-		pixels.setPixelColor(row*8+led, 0, 255, 0);
-		break;
-	case LED_ON_NOT_OK:
-	case LED_BLINK:
-		pixels.setPixelColor(row*8+led, 255, 0, 0);
-		break;
-	}
-}
-
-static void update_leds()
-{
-	for (uint8_t row = 0; row < 3; row++)
-	{
-		for (uint8_t led = 0; led < 8; led++)
-		{
-			set_led_on_state(s_neopixels, row, led, s_led_state[row][led]);
-		}
-	}
-	s_neopixels.show();
-}
-
-/* Public Functions */
-
-void leds_update_on_game_state_change(GAME_STATE state)
-{
-	for (uint8_t row = 0; row < 3; row++)
-	{
-		for (uint8_t led = 0; led < 8; led++)
-		{
-			s_led_state[row][led] = handle_new_game_state(s_led_state[row][led], led, state);
-		}
-	}
-}
-
-void leds_update_on_button_press(bool * button_press_flags)
-{
-	for (uint8_t row = 0; row < 3; row++)
-	{
-		if (button_press_flags[row])
-		{
-			for (uint8_t led = 0; led < 8; led++)
+			else
 			{
-				s_led_state[row][led] = handle_button_press(s_led_state[row][led], row);
+				s_leds.setPixelColor(ledmap(row, led), s_leds.Color(0,0,0));
 			}
 		}
 	}
+
+	s_leds.show();
+}
+
+static void led_task_fn(TaskAction* this_task)
+{
+	(void)this_task;
+	for(uint8_t row=0; row<NUMBER_OF_ROWS; row++)
+	{
+		if (s_row_blink_counter[row])
+		{
+			s_row_blink_counter[row] = max(s_row_blink_counter[row]-10, 0);
+		}
+	}
+	update();
+}
+static TaskAction s_led_task(led_task_fn, 10, INFINITE_TICKS);
+
+/* Public Module Functions */
+
+void leds_setup()
+{
+	s_leds.begin();
+	s_leds.show();
+
+	for(uint8_t row=0; row<NUMBER_OF_ROWS; row++)
+	{
+		for(uint8_t led=0; led<BUTTONS_PER_ROW; led++)
+		{
+			s_leds.setPixelColor(ledmap(row, led), s_leds.Color(COMPLETED_COLOR));
+			s_leds.show();
+			delay(40);
+		}
+	}
+}
+
+void leds_set_completed_bars(uint8_t set)
+{
+	s_complete = set;
+	reset_blink_states();
+	update();
+}
+
+void leds_set_blink(uint8_t row)
+{
+	s_row_blink_counter[row] = BLINK_MS;
+	s_pressed_once[row] = true;
+	update();
 }
 
 void leds_tick()
 {
-	s_led_blink_task.tick();
-	update_leds();
-}
-
-void leds_init()
-{
-	s_neopixels.begin();
-	for (uint8_t row = 0; row < 3; row++)
-	{
-		for (uint8_t led = 0; led < 8; led++)
-		{
-			s_led_state[row][led] = (led == 0) ? LED_OFF_2 : LED_OFF_1;
-			s_neopixels.setPixelColor(row*8+led, 0, 0, 0);
-		}
-		s_led_blink_counter[row] = 0;
-	}
-	s_neopixels.show();
-}
-
-LED_STATE * leds_get_state_array()
-{
-	return (LED_STATE*)s_led_state;
+	s_led_task.tick();
 }

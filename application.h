@@ -3,6 +3,8 @@
 
 /* Defines, typedefs, constants */
 
-typedef unsigned char GAME_STATE;
+static const int BUTTONS_PER_ROW = 8;
+static const int NUMBER_OF_ROWS = 3;
+static const int NUMBER_OF_BUTTONS = BUTTONS_PER_ROW*NUMBER_OF_ROWS;
 
 #endif
