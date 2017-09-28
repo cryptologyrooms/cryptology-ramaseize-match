@@ -21,8 +21,10 @@ static const int DEBOUNCE_COUNT = 5;
 /* Private Variables */
 
 static BUTTON s_buttons[NUMBER_OF_ROWS][BUTTONS_PER_ROW];
-static int s_pressed_count[3] = {0,0,0};
+static int s_pressed_in_row_count[3] = {0,0,0};
 static bool * sp_button_update_flag;
+
+static BUTTON * sp_last_three_buttons[3] = {NULL, NULL, NULL};
 
 /* Private Functions */
 
@@ -52,6 +54,13 @@ static void debounce_button(BUTTON& button, bool state)
 	}
 }
 
+static void update_press_history(BUTTON& button, BUTTON * last_three_buttons[3])
+{
+	last_three_buttons[2] = last_three_buttons[1];
+	last_three_buttons[1] = last_three_buttons[0];
+	last_three_buttons[0] = &button;
+}
+
 static void debounce_task_fn(TaskAction* this_task)
 {
 	(void)this_task;
@@ -60,14 +69,18 @@ static void debounce_task_fn(TaskAction* this_task)
 	int b;
 	for (r=0; r<NUMBER_OF_ROWS; r++)
 	{
-		s_pressed_count[r] = 0;
+		s_pressed_in_row_count[r] = 0;
 		for (b=0; b<BUTTONS_PER_ROW; b++)
 		{
 			debounce_button(s_buttons[r][b], digitalRead(BUTTONS_PINS[r][b])==LOW);
-			if (s_buttons[r][b].pressed) { s_pressed_count[r]++; }
+			if (s_buttons[r][b].pressed) { s_pressed_in_row_count[r]++; }
+			if (s_buttons[r][b].just_pressed)
+			{
+				update_press_history(s_buttons[r][b], sp_last_three_buttons);
+				*sp_button_update_flag = true;
+			}
 		}
 	}
-	*sp_button_update_flag = true;
 }
 static TaskAction s_debounce_task(debounce_task_fn, 10, INFINITE_TICKS);
 
@@ -86,11 +99,13 @@ void buttons_setup(bool& button_update_flag)
 			s_buttons[r][b].pressed = false;
 			s_buttons[r][b].just_released = false;
 			s_buttons[r][b].debounce = 0;
+			s_buttons[r][b].row = r;
+			s_buttons[r][b].col = b;
 		}
 	}
 }
 
-void buttons_tick()
+void buttons_service()
 {
 	s_debounce_task.tick();
 }
@@ -100,9 +115,9 @@ BUTTON * buttons_get(int r, int b)
 	return &(s_buttons[r][b]);
 }
 
-int buttons_pressed_count(int r)
+int buttons_pressed_in_row_count(int r)
 {
-	return s_pressed_count[r];
+	return s_pressed_in_row_count[r];
 }
 
 void buttons_fake(uint8_t * button_indexes)
@@ -113,7 +128,30 @@ void buttons_fake(uint8_t * button_indexes)
 		s_buttons[r][button_indexes[r]].just_pressed = true;
 		s_buttons[r][button_indexes[r]].just_released = false;
 		s_buttons[r][button_indexes[r]].debounce = 0;
-		s_pressed_count[r] = 1;
+		s_pressed_in_row_count[r] = 1;
+		update_press_history(s_buttons[r][button_indexes[r]], sp_last_three_buttons);
 	}
 	*sp_button_update_flag = true;
+}
+
+void buttons_get_last_three_pressed(BUTTON * p_last_three_buttons[3])
+{
+	p_last_three_buttons[0] = sp_last_three_buttons[0];
+	p_last_three_buttons[1] = sp_last_three_buttons[1];
+	p_last_three_buttons[2] = sp_last_three_buttons[2];
+}
+
+void buttons_clear_history()
+{
+	sp_last_three_buttons[0] = NULL;
+	sp_last_three_buttons[1] = NULL;
+	sp_last_three_buttons[2] = NULL;
+}
+
+int button_compare_rows(const void * ppb1, const void * ppb2)
+{
+	BUTTON * pb1 = *(BUTTON **)ppb1;
+	BUTTON * pb2 = *(BUTTON **)ppb2;
+	
+	return (((BUTTON*)pb1)->row) - (((BUTTON*)pb2)->row);
 }
