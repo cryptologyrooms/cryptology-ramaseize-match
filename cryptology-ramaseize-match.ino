@@ -15,10 +15,10 @@
 /* Defines, typedefs, constants */
 
 static const char * TOP_ROW_ORDER = "ABCDEFGH";
-static const char * MIDDLE_ROW_ORDER = "FACEHDBG";
-static const char * BOTTOM_ROW_ORDER = "DEAFGHCB";
+static const char * MIDDLE_ROW_ORDER = "ABCDEFGH";
+static const char * BOTTOM_ROW_ORDER = "ABCDEFGH";
 
-static const char * BUTTON_ORDER[NUMBER_OF_ROWS] = {
+static const char * BUTTON_ORDER[NUMBER_OF_BUTTON_ROWS] = {
 	TOP_ROW_ORDER,
 	MIDDLE_ROW_ORDER,
 	BOTTOM_ROW_ORDER
@@ -39,7 +39,7 @@ static volatile bool s_fake_flag = false;
 
 static void maglock_unlock(bool unlock)
 {
-	digitalWrite(MAGLOCK_PIN, unlock ? LOW : HIGH);
+	digitalWrite(MAGLOCK_PIN, unlock ? HIGH : LOW);
 }
 
 static bool all_match(unsigned char const * const c, int n)
@@ -71,28 +71,6 @@ static int find_letter_in_order(unsigned char letter, char const * const order)
 	}
 	return -1;
 }
-
-//static bool exactly_one_button_pressed_in_each_row()
-//{
-//	return (buttons_pressed_count(0) == 1) && (buttons_pressed_count(1) == 1) && (buttons_pressed_count(2) == 1);
-//}
-
-/*static int get_button_pressed_in_row(int r)
-{
-	for(int b=0; b<BUTTONS_PER_ROW;b++)
-	{
-		if (buttons_get(r, b)->pressed) { return b; }
-	}
-	return -1;
-}
-
-void get_button_index_pressed_in_each_row(int * button_states)
-{
-	for(int i=0; i<NUMBER_OF_ROWS; i++)
-	{
-		button_states[i] = get_last_button_pressed_in_row(i);
-	}
-}*/
 
 static bool any_are_null(void * ptrs[], const int n)
 {
@@ -152,24 +130,31 @@ static void print_buttons(BUTTON * btns[3])
 
 static void signal_bad_combination()
 {
-	led_manager_set_blink(0, 2);
-	led_manager_set_blink(1, 2);
-	led_manager_set_blink(2, 2);
+	led_manager_set_bank_blink(2, false, false);
+}
+
+static void update_pressed_led()
+{
+	for(int8_t r=0; r<NUMBER_OF_BUTTON_ROWS; r++)
+	{
+		for(int8_t b=0; b<BUTTONS_PER_ROW; b++)
+
+		if (buttons_get(r, b)->just_pressed)
+		{
+			led_manager_set_led_blink(1, r, true, true);
+		}
+	}
+
 }
 
 static void update_game_state(bool * completed_combinations)
 {
-
 	BUTTON * p_last_three_buttons[3];
 
 	Serial.print("Updating state...");
 
-	int button_columns[NUMBER_OF_ROWS];
-	unsigned char button_letters[NUMBER_OF_ROWS];
-
-//	if (!exactly_one_button_pressed_in_each_row()) { return; }
-
-	//get_button_index_pressed_in_each_row(button_columns);
+	int button_columns[NUMBER_OF_BUTTON_ROWS];
+	unsigned char button_letters[NUMBER_OF_BUTTON_ROWS];
 
 	bool last_three_buttons_are_in_different_rows;
 
@@ -196,12 +181,12 @@ static void update_game_state(bool * completed_combinations)
 	button_columns[1] = p_last_three_buttons[1]->col;
 	button_columns[2] = p_last_three_buttons[2]->col;
 	
-	for(int8_t i=0; i<NUMBER_OF_ROWS; i++)
+	for(int8_t i=0; i<NUMBER_OF_BUTTON_ROWS; i++)
 	{
-		button_letters[i] = BUTTON_ORDER[i][button_columns[i]];//find_letter_in_order(button_columns[i], BUTTON_ORDER[i]);
+		button_letters[i] = BUTTON_ORDER[i][button_columns[i]];
 	}
 
-	if (all_match(button_letters, NUMBER_OF_ROWS))
+	if (all_match(button_letters, NUMBER_OF_BUTTON_ROWS))
 	{
 		if (completed_combinations[button_letters[0] - 'A'])
 		{
@@ -221,6 +206,7 @@ static void update_game_state(bool * completed_combinations)
 	else
 	{
 		Serial.println("No match.");
+		signal_bad_combination();
 	}
 	buttons_clear_history();
 }
@@ -242,20 +228,6 @@ static void handle_game_state(bool * completed_combinations)
 	maglock_unlock(number_complete == BUTTONS_PER_ROW);
 }
 
-/*static void handle_led_blink()
-{
-	for(int8_t r=0; r<NUMBER_OF_ROWS; r++)
-	{
-		for (int8_t b=0; b<BUTTONS_PER_ROW; b++)
-		{
-			if (buttons_get(r, b)->just_pressed)
-			{
-				led_manager_set_blink(r, 1);
-			}	
-		}
-	}
-}*/
-
 static void debug_task_fn(TaskAction * this_task)
 {
 	(void)this_task;
@@ -266,7 +238,10 @@ static void debug_task_fn(TaskAction * this_task)
 	}
 	Serial.println("");
 
-/*	Serial.print("Last 3 buttons: ");
+	BUTTON * p_last_three_buttons[3];
+	buttons_get_last_three_pressed(p_last_three_buttons);
+
+	Serial.print("Last 3 buttons: ");
 	for (int8_t i=0; i<3; i++)
 	{
 		if (p_last_three_buttons[i])
@@ -280,7 +255,7 @@ static void debug_task_fn(TaskAction * this_task)
 		}
 		Serial.print(",");
 	}
-	Serial.println("");*/
+	Serial.println("");
 };
 static TaskAction s_debug_task(debug_task_fn, 500, INFINITE_TICKS);
 
@@ -326,11 +301,14 @@ void loop()
 {
 	buttons_service();
 	led_manager_service();
+
 	s_debug_task.tick();
 
 	if (s_button_update_flag)
 	{
 		s_button_update_flag = false;
+
+		update_pressed_led();
 		update_game_state(s_completed_combinations);
 		handle_game_state(s_completed_combinations);
 	}
@@ -341,6 +319,8 @@ void loop()
 		fake_next_sequence();
 	}
 }
+
+static char rx_buffer[16];
 
 void serialEvent()
 {

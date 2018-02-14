@@ -18,7 +18,7 @@ public:
 	void turn_on();
 	void turn_off();
 
-	void set_blink(uint8_t nblinks, uint16_t time);
+	void set_blink(uint8_t nblinks, uint16_t time, bool invert_blink, bool post_blink_state);
 
 	bool get_state();
 	void set_color(int r, int g, int b);
@@ -34,6 +34,8 @@ private:
 	uint16_t m_blink_reload;
 	uint16_t m_blink_timer;
 	uint8_t m_blink_counter;
+	bool m_invert_blink;
+	bool m_post_blink_state;
 	enum led_state m_state;
 	int m_r, m_g, m_b;
 };

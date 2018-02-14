@@ -9,7 +9,7 @@
 
 /* Defines, typedefs, constants */
 
-static const int BUTTONS_PINS[NUMBER_OF_ROWS][BUTTONS_PER_ROW] = {
+static const int BUTTONS_PINS[NUMBER_OF_BUTTON_ROWS][BUTTONS_PER_ROW] = {
 	11, 10, 9, 8, 7, 6, 5, 4,
 	26, 27, 28, 29, 30, 31, 32, 33,
 	50, 51, 52, 53, A0, A1, A2, A3
@@ -20,7 +20,7 @@ static const int DEBOUNCE_COUNT = 5;
 
 /* Private Variables */
 
-static BUTTON s_buttons[NUMBER_OF_ROWS][BUTTONS_PER_ROW];
+static BUTTON s_buttons[NUMBER_OF_BUTTON_ROWS][BUTTONS_PER_ROW];
 static int s_pressed_in_row_count[3] = {0,0,0};
 static bool * sp_button_update_flag;
 
@@ -67,7 +67,7 @@ static void debounce_task_fn(TaskAction* this_task)
 
 	int r;
 	int b;
-	for (r=0; r<NUMBER_OF_ROWS; r++)
+	for (r=0; r<NUMBER_OF_BUTTON_ROWS; r++)
 	{
 		s_pressed_in_row_count[r] = 0;
 		for (b=0; b<BUTTONS_PER_ROW; b++)
@@ -76,7 +76,11 @@ static void debounce_task_fn(TaskAction* this_task)
 			if (s_buttons[r][b].pressed) { s_pressed_in_row_count[r]++; }
 			if (s_buttons[r][b].just_pressed)
 			{
-				update_press_history(s_buttons[r][b], sp_last_three_buttons);
+				Serial.print(r);
+				Serial.print(",");
+				Serial.println(b);
+				sp_last_three_buttons[r] = &s_buttons[r][b];
+				//update_press_history(s_buttons[r][b], sp_last_three_buttons);
 				*sp_button_update_flag = true;
 			}
 		}
@@ -90,7 +94,7 @@ void buttons_setup(bool& button_update_flag)
 {
 	sp_button_update_flag = &button_update_flag;
 
-	for (uint8_t r=0; r<NUMBER_OF_ROWS; r++)
+	for (uint8_t r=0; r<NUMBER_OF_BUTTON_ROWS; r++)
 	{
 		for (uint8_t b=0; b<BUTTONS_PER_ROW; b++)
 		{
@@ -122,7 +126,7 @@ int buttons_pressed_in_row_count(int r)
 
 void buttons_fake(uint8_t * button_indexes)
 {
-	for (uint8_t r=0; r<NUMBER_OF_ROWS; r++)
+	for (uint8_t r=0; r<NUMBER_OF_BUTTON_ROWS; r++)
 	{
 		s_buttons[r][button_indexes[r]].pressed = true;
 		s_buttons[r][button_indexes[r]].just_pressed = true;

@@ -47,6 +47,7 @@ void LED::update(uint16_t time)
 	case LED_BLINK_OFF:
 		if (m_blink_timer == 0)
 		{
+			if (!m_invert_blink) { this->update_blink_counter(); }
 			if(m_blink_counter > 0)
 			{
 				m_state = LED_BLINK_ON;
@@ -54,14 +55,14 @@ void LED::update(uint16_t time)
 			}
 			else
 			{
-				m_state = LED_OFF;
+				m_state = m_post_blink_state ? LED_ON : LED_OFF;
 			}
 		}
 		break;
 	case LED_BLINK_ON:
 		if (m_blink_timer == 0)
 		{
-			this->update_blink_counter();
+			if (m_invert_blink) { this->update_blink_counter(); }
 			if(m_blink_counter > 0)
 			{
 				m_state = LED_BLINK_OFF;
@@ -69,19 +70,21 @@ void LED::update(uint16_t time)
 			}
 			else
 			{
-				m_state = LED_OFF;
+				m_state = m_post_blink_state ? LED_ON : LED_OFF;
 			}
 		}
 		break;
 	}
 }
 
-void LED::set_blink(uint8_t nblinks, uint16_t time)
+void LED::set_blink(uint8_t nblinks, uint16_t time, bool invert_blink, bool post_blink_state)
 {
 	m_blink_reload = time;
 	m_blink_timer = time;
 	m_blink_counter = nblinks;
-	m_state = LED_BLINK_ON;
+	m_invert_blink = invert_blink;
+	m_state = m_invert_blink ? LED_BLINK_OFF : LED_BLINK_ON;
+	m_post_blink_state = post_blink_state;
 }
 
 bool LED::get_state()

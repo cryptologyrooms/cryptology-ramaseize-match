@@ -3,8 +3,11 @@
 
 /* Defines, typedefs, constants */
 
+static const int NUMBER_OF_LED_BANKS = 8;
+static const int LEDS_PER_BANK = 3;
+
+static const int NUMBER_OF_BUTTON_ROWS = 3;
 static const int BUTTONS_PER_ROW = 8;
-static const int NUMBER_OF_ROWS = 3;
-static const int NUMBER_OF_BUTTONS = BUTTONS_PER_ROW*NUMBER_OF_ROWS;
+static const int NUMBER_OF_BUTTONS = NUMBER_OF_BUTTON_ROWS * BUTTONS_PER_ROW;
 
 #endif
