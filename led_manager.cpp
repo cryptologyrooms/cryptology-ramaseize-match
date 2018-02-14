@@ -11,12 +11,13 @@
 
 /* Defines, typedefs, constants */
 #define RED 32,0,0
-#define AMBER 32,15,0
+#define AMBER 48,25,0
 #define GREEN 0,32,0
+#define WHITE 32,32,32
 
-#define SINGLE_PRESS_COLOR RED
-#define COMPLETED_COLOR GREEN
-#define BLINK_COLOUR RED
+#define SINGLE_PRESS_COLOR WHITE
+#define COMPLETED_COLOR AMBER
+#define BLINK_COLOUR WHITE
 #define OFF_COLOR 0,0,0
 
 static const int PIN = A4;
