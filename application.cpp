@@ -63,20 +63,11 @@ static int find_letter_in_order(unsigned char letter, char const * const order)
 	return -1;
 }
 
-static bool array_contains(int needle, int * arr, int n)
-{
-	for (int i=0; i<n; i++)
-	{
-		if (arr[i] == needle) { return true; }
-	}
-	return false;
-}
-
 static bool all_are_different(int * ints, int n)
 {
 	for (int i=0; i<n; i++)
 	{
-		if (array_contains(ints[i], &ints[i+1], n-i-1)) { return false; }
+		if (array_contains(&ints[i+1], ints[i], n-i-1)) { return false; }
 	}
 	return true;
 }
