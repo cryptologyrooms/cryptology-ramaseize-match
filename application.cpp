@@ -63,18 +63,6 @@ static int find_letter_in_order(unsigned char letter, char const * const order)
 	return -1;
 }
 
-static void order_by_row(BUTTON * buttons[3])
-{
-	BUTTON * copy[3] = {buttons[0], buttons[1], buttons[2]};
-
-	for (int i; i<2; i++)
-	{
-		if (copy[i]->row == 0) { buttons[0] = copy[i]; continue; }
-		if (copy[i]->row == 1) { buttons[1] = copy[i]; continue; }
-		if (copy[i]->row == 2) { buttons[2] = copy[i]; continue; }
-	}
-}
-
 static void print_buttons(BUTTON * btns[3])
 {
 	for (int8_t i=0; i<3; i++)
