@@ -58,6 +58,10 @@
         <module>Task</module>
     </modules>
 
+    <logging>
+        <log_module>APPLICATION</log_module>
+	</logging>
+
 	<custom_code>
 		<file>application.cpp</file>
 		<file>application.h</file>
