@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+
+<board type="Arduino Mega" name="Cryptology Ramaseize Match Puzzle">
+	<info>
+		An example sketch for the RGB parameter
+	</info>
+	
+    <defines>
+        <define>NUMBER_OF_LED_BANKS 8</define>
+        <define>LEDS_PER_BANK 3</define>
+        
+    </defines>
+
+	<parameters>
+		<parameter name="SinglePressColour" type="RGB">
+			<setting id="r_default" value="32"/>
+			<setting id="g_default" value="32"/>
+			<setting id="b_default" value="32"/>
+			<setting id="use_eeprom" value="true"/>
+		</parameter>
+		<parameter name="CompletedColour" type="RGB">
+			<setting id="r_default" value="48"/>
+			<setting id="g_default" value="25"/>
+			<setting id="b_default" value="0"/>
+			<setting id="use_eeprom" value="true"/>
+		</parameter>
+		<parameter name="BlinkColour" type="RGB">
+			<setting id="r_default" value="32"/>
+			<setting id="g_default" value="32"/>
+			<setting id="b_default" value="32"/>
+			<setting id="use_eeprom" value="true"/>
+		</parameter>
+		<parameter name="ExistingCombinationColour" type="RGB">
+			<setting id="r_default" value="0"/>
+			<setting id="g_default" value="0"/>
+			<setting id="b_default" value="32"/>
+			<setting id="use_eeprom" value="true"/>
+		</parameter>
+		<parameter name="BadCombinationColour" type="RGB">
+			<setting id="r_default" value="32"/>
+			<setting id="g_default" value="0"/>
+			<setting id="b_default" value="0"/>
+			<setting id="use_eeprom" value="true"/>
+		</parameter>
+		<parameter name="FakePress" type="String">
+            <setting id="reset_value" value=""/>
+            <setting id="length" value="1"/>
+		</parameter>
+	</parameters>
+	
+	<devices>
+        <device name="NeoPixels" type="Adafruit NeoPixel">
+            <setting id="pin" value="A4"/>
+            <setting id="npixels" value="NUMBER_OF_LED_BANKS*LEDS_PER_BANK"/>
+        </device>
+	</devices>
+    <modules>
+        <module>Task</module>
+    </modules>
+
+	<custom_code>
+		<file>application.cpp</file>
+		<file>application.h</file>
+		<file>buttons.cpp</file>
+		<file>buttons.h</file>
+		<file>led.cpp</file>
+		<file>led.h</file>
+		<file>led_manager.cpp</file>
+		<file>led_manager.h</file>
+	</custom_code>
+</board>
+

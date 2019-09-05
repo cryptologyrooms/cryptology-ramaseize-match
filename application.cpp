@@ -2,9 +2,17 @@
 
 #include <stdlib.h>
 
-/* Arduino Library Includes */
+/*
+ * RAAT Includes
+ */
 
-#include "TaskAction.h"
+#include "raat.hpp"
+
+#include "string-param.hpp"
+
+#include "raat-oneshot-timer.hpp"
+#include "raat-oneshot-task.hpp"
+#include "raat-task.hpp"
 
 /* Application Includes */
 
@@ -34,6 +42,8 @@ static bool s_completed_combinations[BUTTONS_PER_ROW] = {false, false, false, fa
 
 static volatile bool s_button_update_flag = false;
 static volatile bool s_fake_flag = false;
+
+static raat_params_struct * pParams;
 
 /* Private Functions */
 
@@ -128,9 +138,9 @@ static void print_buttons(BUTTON * btns[3])
 	}
 }
 
-static void signal_bad_combination()
+static void signal_bad_combination(RGBParam<uint8_t> * pColorParam)
 {
-	led_manager_set_bank_blink(2, false, false);
+	led_manager_set_bank_blink(2, false, false, pColorParam);
 }
 
 static void update_pressed_led()
@@ -141,7 +151,7 @@ static void update_pressed_led()
 
 		if (buttons_get(r, b)->just_pressed)
 		{
-			led_manager_set_led_blink(1, r, true, true);
+			led_manager_set_led_blink(1, r, true, true, pParams->pBlinkColour);
 		}
 	}
 
@@ -193,7 +203,7 @@ static void update_game_state(bool * completed_combinations)
 			Serial.print("Existing match ");
 			Serial.print((char)button_letters[0]);
 			Serial.println("!");	
-			signal_bad_combination();
+			signal_bad_combination(pParams->pBadCombinationColour);
 		}
 		else
 		{
@@ -206,7 +216,7 @@ static void update_game_state(bool * completed_combinations)
 	else
 	{
 		Serial.println("No match.");
-		signal_bad_combination();
+		signal_bad_combination(pParams->pExistingCombinationColour);
 	}
 	buttons_clear_history();
 }
@@ -228,9 +238,10 @@ static void handle_game_state(bool * completed_combinations)
 	maglock_unlock(number_complete == BUTTONS_PER_ROW);
 }
 
-static void debug_task_fn(TaskAction * this_task)
+static void debug_task_fn(RAATTask * pThisTask, void * pTaskData)
 {
-	(void)this_task;
+	(void)pThisTask; (void)pTaskData;
+
 	Serial.print("State: ");
 	for(int8_t i=0; i < BUTTONS_PER_ROW; i++)
 	{
@@ -257,18 +268,10 @@ static void debug_task_fn(TaskAction * this_task)
 	}
 	Serial.println("");
 };
-static TaskAction s_debug_task(debug_task_fn, 500, INFINITE_TICKS);
+static RAATTask s_debug_task(500, debug_task_fn, NULL);
 
-static void fake_next_sequence()
+static void fake_next_sequence(char sequence_letter)
 {
-	int next_combination_index = 0;
-	while(s_completed_combinations[next_combination_index])
-	{
-		next_combination_index++;
-		if (next_combination_index == 8) { return; }
-	}
-
-	char sequence_letter = 'A' + next_combination_index;
 	Serial.print("Faking sequence:"); Serial.print(sequence_letter); 
 	Serial.print("(");
 
@@ -285,24 +288,23 @@ static void fake_next_sequence()
 
 /* Public Functions */
 
-void setup()
+void raat_custom_setup(const raat_devices_struct& devices, const raat_params_struct& params)
 {
-	Serial.begin(115200);
+	pParams = &params;
 
-	led_manager_setup();
+	led_manager_setup(devices, params);
 	buttons_setup((bool&)s_button_update_flag);
 
 	pinMode(MAGLOCK_PIN, OUTPUT);
 	maglock_unlock(false);
-
 }
 
-void loop()
+void raat_custom_loop(const raat_devices_struct& devices, const raat_params_struct& params)
 {
 	buttons_service();
 	led_manager_service();
 
-	s_debug_task.tick();
+	s_debug_task.run();
 
 	if (s_button_update_flag)
 	{
@@ -313,23 +315,12 @@ void loop()
 		handle_game_state(s_completed_combinations);
 	}
 
-	if (s_fake_flag)
+	if (params.pFakePress->strlen() > 0)
 	{
+		char sequence_letter[2];
+		params.pFakePress->get(sequence_letter);
+		params.pFakePress->set("");
 		s_fake_flag = false;
-		fake_next_sequence();
-	}
-}
-
-static char rx_buffer[16];
-
-void serialEvent()
-{
-	while (Serial.available())
-	{
-		char c = Serial.read();
-		if (c == 'f')
-		{
-			s_fake_flag = true;
-		}
+		fake_next_sequence(sequence_letter[0]);
 	}
 }

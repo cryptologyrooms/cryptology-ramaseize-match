@@ -1,6 +1,11 @@
-/* Arduino Library Includes */
+/*
+ * RAAT Includes
+ */
 
-#include "TaskAction.h"
+#include "raat.hpp"
+#include "raat-oneshot-timer.hpp"
+#include "raat-oneshot-task.hpp"
+#include "raat-task.hpp"
 
 /* Application Includes */
 
@@ -61,9 +66,9 @@ static void update_press_history(BUTTON& button, BUTTON * last_three_buttons[3])
 	last_three_buttons[0] = &button;
 }
 
-static void debounce_task_fn(TaskAction* this_task)
+static void debounce_task_fn(RAATTask* this_task, void * pTaskData)
 {
-	(void)this_task;
+	(void)this_task; (void)pTaskData;
 
 	int r;
 	int b;
@@ -86,7 +91,7 @@ static void debounce_task_fn(TaskAction* this_task)
 		}
 	}
 }
-static TaskAction s_debounce_task(debounce_task_fn, 10, INFINITE_TICKS);
+static RAATTask s_debounce_task(debounce_task_fn, 10, NULL);
 
 /* Public Functions */
 
@@ -111,7 +116,7 @@ void buttons_setup(bool& button_update_flag)
 
 void buttons_service()
 {
-	s_debounce_task.tick();
+	s_debounce_task.run();
 }
 
 BUTTON * buttons_get(int r, int b)
