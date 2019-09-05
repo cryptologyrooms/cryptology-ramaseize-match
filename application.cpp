@@ -52,25 +52,6 @@ static void maglock_unlock(bool unlock)
 	digitalWrite(MAGLOCK_PIN, unlock ? HIGH : LOW);
 }
 
-static bool all_match(unsigned char const * const c, int n)
-{
-	for (int i=1; i<n; i++)
-	{
-		if (c[0] != c[i]) { return false; }
-	}
-	return true;
-}
-
-static int count_true(bool * bools, int n)
-{
-	int count = 0;
-	for (int i=0; i<n; i++)
-	{
-		if (bools[i]) { count++; }
-	}
-	return count;
-}
-
 static inline unsigned char button_to_letter(int button) { return button + 'A'; }
 
 static int find_letter_in_order(unsigned char letter, char const * const order)
@@ -212,7 +193,7 @@ static void handle_game_state(bool * completed_combinations)
 {
 	static int8_t s_number_complete = -1;
 
-	int8_t number_complete = count_true(completed_combinations, BUTTONS_PER_ROW);
+	int8_t number_complete = count_values<bool>(completed_combinations, true, BUTTONS_PER_ROW);
 
 	if (s_number_complete != number_complete)
 	{
