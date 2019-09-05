@@ -63,15 +63,6 @@ static int find_letter_in_order(unsigned char letter, char const * const order)
 	return -1;
 }
 
-static bool all_are_different(int * ints, int n)
-{
-	for (int i=0; i<n; i++)
-	{
-		if (array_contains(&ints[i+1], ints[i], n-i-1)) { return false; }
-	}
-	return true;
-}
-
 static void order_by_row(BUTTON * buttons[3])
 {
 	BUTTON * copy[3] = {buttons[0], buttons[1], buttons[2]};
@@ -140,7 +131,7 @@ static void update_game_state(bool * completed_combinations)
 	last_three_button_rows[1] = p_last_three_buttons[1]->row;
 	last_three_button_rows[2] = p_last_three_buttons[2]->row;
 
-	last_three_buttons_are_in_different_rows = all_are_different(last_three_button_rows, 3);
+	last_three_buttons_are_in_different_rows = all_unique<int>(last_three_button_rows, 3);
 
 	if (!last_three_buttons_are_in_different_rows) { raat_logln(LOG_APP, " rows diff."); return; }
 
