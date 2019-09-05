@@ -82,15 +82,6 @@ static int find_letter_in_order(unsigned char letter, char const * const order)
 	return -1;
 }
 
-static bool any_are_null(void * ptrs[], const int n)
-{
-	for (int i=0; i < n; i++)
-	{
-		if (!ptrs[i]) { return true; }
-	}
-	return false;
-}
-
 static bool array_contains(int needle, int * arr, int n)
 {
 	for (int i=0; i<n; i++)
@@ -171,7 +162,7 @@ static void update_game_state(bool * completed_combinations)
 	int last_three_button_rows[3];
 	buttons_get_last_three_pressed(p_last_three_buttons);
 
-	if (any_are_null((void**)p_last_three_buttons, 3)) { raat_logln(" nulls."); return; }
+	if (any_are_null((void**)p_last_three_buttons, 3)) { raat_logln(LOG_APP, " nulls."); return; }
 
 	last_three_button_rows[0] = p_last_three_buttons[0]->row;
 	last_three_button_rows[1] = p_last_three_buttons[1]->row;
@@ -179,7 +170,7 @@ static void update_game_state(bool * completed_combinations)
 
 	last_three_buttons_are_in_different_rows = all_are_different(last_three_button_rows, 3);
 
-	if (!last_three_buttons_are_in_different_rows) { raat_logln(" rows diff."); return; }
+	if (!last_three_buttons_are_in_different_rows) { raat_logln(LOG_APP, " rows diff."); return; }
 
 	qsort(p_last_three_buttons, 3, sizeof(BUTTON*), button_compare_rows);
 
@@ -200,18 +191,18 @@ static void update_game_state(bool * completed_combinations)
 	{
 		if (completed_combinations[button_letters[0] - 'A'])
 		{
-			raat_logln(LOG_APP, "Existing match %c!" (char)button_letters[0]);
+			raat_logln(LOG_APP, "Existing match %c!", (char)button_letters[0]);
 			signal_bad_combination(pParams->pBadCombinationColour);
 		}
 		else
 		{
-			raat_logln(LOG_APP, "Match %c!" (char)button_letters[0]);
+			raat_logln(LOG_APP, "Match %c!", (char)button_letters[0]);
 			completed_combinations[button_letters[0] - 'A'] = true;
 		}
 	}
 	else
 	{
-		raat_logln("No match.");
+		raat_logln(LOG_APP, "No match.");
 		signal_bad_combination(pParams->pExistingCombinationColour);
 	}
 	buttons_clear_history();
@@ -226,7 +217,7 @@ static void handle_game_state(bool * completed_combinations)
 	if (s_number_complete != number_complete)
 	{
 		s_number_complete = number_complete;
-		raat_logln(LOG_APP, "Complete: %d" s_number_complete);
+		raat_logln(LOG_APP, "Complete: %d", s_number_complete);
 		led_manager_set_completed_bars(number_complete);
 	}
 
