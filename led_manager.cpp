@@ -13,11 +13,14 @@
 #define RED 32,0,0
 #define AMBER 48,25,0
 #define GREEN 0,32,0
+#define BLUE 0,0,32
 #define WHITE 32,32,32
 
 #define SINGLE_PRESS_COLOR WHITE
 #define COMPLETED_COLOR AMBER
 #define BLINK_COLOUR WHITE
+#define BLINK_BAD_COMBINATION RED
+#define BLINK_EXISTING_COMBINATION BLUE
 #define OFF_COLOR 0,0,0
 
 static const int PIN = A4;
@@ -137,13 +140,21 @@ void led_manager_set_led_blink(uint8_t nblinks, uint8_t led, bool invert_blink, 
 	update(0);
 }
 
-void led_manager_set_bank_blink(uint8_t nblinks, bool invert_blink, bool post_blink_state, int8_t led_bank)
+void led_manager_set_bank_blink(
+	uint8_t nblinks, bool invert_blink, bool post_blink_state, bool blink_existing, int8_t led_bank)
 {
 	if (led_bank == -1) { led_bank = s_complete; }
 
 	for(uint8_t led=0; led<LEDS_PER_BANK; led++)
 	{
-		s_leds[led_bank][led].set_color(BLINK_COLOUR);
+		if (blink_existing)
+		{
+			s_leds[led_bank][led].set_color(BLINK_EXISTING_COMBINATION);
+		}
+		else
+		{
+			s_leds[led_bank][led].set_color(BLINK_BAD_COMBINATION);			
+		}
 		s_leds[led_bank][led].set_blink(nblinks, 250, invert_blink, post_blink_state);
 	}
 	update(0);

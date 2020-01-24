@@ -130,7 +130,12 @@ static void print_buttons(BUTTON * btns[3])
 
 static void signal_bad_combination()
 {
-	led_manager_set_bank_blink(2, false, false);
+	led_manager_set_bank_blink(2, false, false, false);
+}
+
+static void signal_existing_combination()
+{
+	led_manager_set_bank_blink(2, false, false, true);
 }
 
 static void update_pressed_led()
@@ -193,7 +198,7 @@ static void update_game_state(bool * completed_combinations)
 			Serial.print("Existing match ");
 			Serial.print((char)button_letters[0]);
 			Serial.println("!");	
-			signal_bad_combination();
+			signal_existing_combination();
 		}
 		else
 		{
